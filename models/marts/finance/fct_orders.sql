@@ -38,3 +38,5 @@ select * from final
     where order_date >= (select max(order_date) from {{ this }}) 
 {% endif %}
 order by customer_id asc
+
+-- comment at the end to test slim ci
