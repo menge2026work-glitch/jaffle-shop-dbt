@@ -46,3 +46,15 @@ models:
           - include: all 
             exclude: [amount]
 
+exposures:
+  - name: jaffle_shop_weekly_metrics
+    label: Jaffle Shop Weekly Metrics
+    description: Weekly order Metrics for Jaffle Shop
+    depends_on: 
+      - ref('fct_orders')
+    owner:
+      name: Meng E
+      email: menge2026.work@gmail.com
+    type: dashboard
+    maturity: high
+    url: https://dbtlabs.com
