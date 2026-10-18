@@ -1,0 +1,25 @@
+
+version: 2
+
+models:
+  - name: dim_customers
+    description: "Customer dimension containing customer details, order history, lifetime value and associated employee."
+
+    columns:
+      - name: customer_id
+        description: "Unique identifier for each customer."
+        data_tests:
+          - unique
+          - not_null
+          - dbt_utils.cardinality_equality:
+              arguments: 
+                field: customer_id 
+                to: ref('stg_jaffle_shop__customers')
+
+      - name: employee_id
+        description: "Employee associated with the customer, if available."
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('employees')
+                field: employee_id

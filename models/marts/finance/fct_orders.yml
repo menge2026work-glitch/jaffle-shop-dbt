@@ -1,0 +1,48 @@
+models:
+  - name: fct_orders
+    latest_version: 1 
+    config:
+      contract:
+        enforced: true
+    columns:
+      - name: order_id
+        data_type: number
+        constraints:
+          - type: not_null
+      - name: customer_id
+        data_type: number
+        data_tests:
+          - relationships:
+              arguments: 
+                to: ref('dim_customers')
+                field: customer_id
+              config:
+                store_failures: true
+      - name: order_date
+        data_type: date
+      - name: amount
+        data_type: number(38,2)
+
+        data_tests:
+          # - average_dollars_spent_greater_than_one:
+          #     arguments:
+          #       group_by_column: customer_id
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                row_condition: "order_id is not null"
+                strictly: false
+
+    versions:
+      - v: 1
+        config:
+          alias: fct_orders 
+      - v: 2
+        columns:
+          - name: payment_amount 
+            data_type: number(38,2)
+          - name: order_date 
+            data_type: date 
+          - include: all 
+            exclude: [amount]
+

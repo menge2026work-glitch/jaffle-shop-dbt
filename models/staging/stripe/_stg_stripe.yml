@@ -1,0 +1,37 @@
+
+version: 2
+
+models:
+  - name: stg_stripe__payment
+    columns:
+      - name: payment_id
+        data_tests:
+          - unique:
+              config:
+                severity: error
+                error_if: ">100"
+                warn_if: ">10"
+          - not_null
+
+      - name: orderid
+
+      - name: paymentmethod
+        data_tests:
+          - not_null:
+              config:
+                where: "payment_status = 'success'"
+
+      - name: payment_status
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ['success', 'fail']
+              config:
+                limit: 10
+                store_failures: true
+
+      - name: amount
+
+      - name: created
+
+      - name: _batched_at
