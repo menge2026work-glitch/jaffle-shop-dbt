@@ -5,8 +5,6 @@
 
         {{ default_schema }}
 
-    -- if we are in prod 
-        -- then we just want custom_schema_name
      {% elif env_var('DBT_MY_ENV') in ['prod'] %}
 
         {{custom_schema_name | trim }}
