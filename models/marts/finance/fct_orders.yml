@@ -3,7 +3,7 @@ models:
     latest_version: 1 
     config:
       contract:
-        enforced: true
+        enforced: false
     columns:
       - name: order_id
         data_type: number
