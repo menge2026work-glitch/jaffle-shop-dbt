@@ -20,7 +20,7 @@ models:
                 store_failures: true
       - name: order_date
         data_type: date
-      - name: amount
+      - name: total_amount_paid
         data_type: number(38,2)
 
         data_tests:
@@ -44,7 +44,7 @@ models:
           - name: order_date 
             data_type: date 
           - include: all 
-            exclude: [amount]
+            exclude: [total_amount_paid]
 
 exposures:
   - name: jaffle_shop_weekly_metrics
