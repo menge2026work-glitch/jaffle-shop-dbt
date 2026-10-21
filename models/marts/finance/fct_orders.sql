@@ -1,42 +1,105 @@
-{{config(
-    materialized='incremental',
-    unique_key = 'order_id', 
-    incremental_strategy='merge',
-    on_schema_change='fail'
-)}}
+with
 
-with orders as (
-    select * from {{ ref('stg_jaffle_shop__orders') }}
+-- Import CTEs
+
+customers as (
+
+  select * from {{ ref('stg_jaffle_shop__customers') }}
+
+),
+
+orders as (
+
+  select * from {{ ref('stg_jaffle_shop__orders') }}
+
 ),
 
 payments as (
-    select * from {{ ref('stg_stripe__payment') }}
+
+  select * from {{ ref('stg_stripe__payment') }}
+
 ),
 
-order_payments as (
-    select 
-        order_id  ,
-        sum(case when payment_status = 'success' then payment_amount end) as amount 
-    from payments 
-    group by 1 
-), 
+-- Logical CTEs
+
+completed_payments as (
+
+  select 
+    order_id,
+    max(payment_created) as payment_finalized_date,
+    sum(payment_amount) as total_amount_paid
+  from payments
+  where payment_status <> 'fail'
+  group by 1
+
+),
+
+paid_orders as (
+
+  select 
+    orders.order_id,
+    orders.customer_id,
+    orders.order_date,
+    orders.order_status,
+
+    completed_payments.total_amount_paid,
+    completed_payments.payment_finalized_date,
+
+    customers.first_name,
+    customers.last_name
+  from orders
+  left join completed_payments on orders.order_id = completed_payments.order_id
+  left join customers on orders.customer_id = customers.customer_id
+
+),
+
+-- Final CTE
 
 final as (
-    select 
-        orders.order_id,
-        orders.customer_id,
-        --adjusting a comment for ci
-        orders.order_date,
-        coalesce(order_payments.amount, 0) as amount 
-    from orders 
-    left join order_payments using (order_id)
+
+  select
+    order_id,
+    customer_id,
+    order_date,
+    order_status,
+    total_amount_paid,
+    payment_finalized_date,
+    first_name,
+    last_name,
+
+    -- sales transaction sequence
+    row_number() over (order by order_id) as transaction_seq,
+
+    -- customer sales sequence
+    row_number() over (partition by customer_id order by order_id) as customer_sales_seq,
+
+    -- new vs returning customer
+    case  
+      when (
+      rank() over (
+      partition by customer_id
+      order by order_date, order_id
+      ) = 1
+    ) then 'new'
+    else 'return' end as nvsr,
+
+    -- customer lifetime value
+    sum(total_amount_paid) over (
+      partition by customer_id
+      order by order_date
+      ) as customer_lifetime_value,
+
+    -- first day of sale
+    first_value(order_date) over (
+      partition by customer_id
+      order by order_date
+      ) as fdos
+
+    from paid_orders
+        
 )
 
-select * from final 
-{% if is_incremental() %}
-    -- this filter will only be applied on an incremental run
-    where order_date >= (select max(order_date) from {{ this }}) 
-{% endif %}
-order by customer_id asc
+-- Simple Select Statement
 
--- comment at the end to test slim ci
+select * from final
+order by order_id
