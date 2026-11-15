@@ -1,0 +1,58 @@
+models:
+  - name: orders_semantic
+    description: >
+      One row per order. Unversioned Semantic Layer interface over fct_orders v2.
+      Revenue is the sum of successful Stripe payments per order.
+
+    semantic_model:
+      enabled: true
+      name: orders
+
+    agg_time_dimension: order_date
+
+    columns:
+      - name: order_id
+        description: Unique identifier for each order.
+        entity:
+          type: primary
+          name: order_id
+        data_tests:
+          - unique
+          - not_null
+
+      - name: customer_id
+        description: Customer who placed the order.
+        entity:
+          type: foreign
+          name: customer
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_customers')
+                field: customer_id
+
+      - name: order_date
+        description: Date the order was placed.
+        granularity: day
+        dimension:
+          type: time
+        data_tests:
+          - not_null
+
+      - name: payment_amount
+        description: Total successful payment amount for the order, in dollars. Zero when unpaid.
+        data_tests:
+          - not_null
+          - dbt_expectations.expect_column_values_to_be_between:
+              arguments:
+                min_value: 0
+                strictly: false
+
+    metrics:
+      - name: total_revenue
+        label: Total Revenue
+        description: Sum of successful payment amounts across orders.
+        type: simple
+        agg: sum
+        expr: payment_amount
